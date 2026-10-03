@@ -2,7 +2,6 @@
 
 **End-to-End Market Risk Model Development, Backtesting, Monitoring, and Governance Framework**
 
-[![CI](https://gitlab.com/your-org/riskcore-lab/badges/main/pipeline.svg)](https://gitlab.com/your-org/riskcore-lab/-/pipelines)
 [![Coverage](https://img.shields.io/badge/coverage-85%25-brightgreen)]()
 [![Python](https://img.shields.io/badge/python-3.11-blue)]()
 
