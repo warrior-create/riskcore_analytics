@@ -22,6 +22,14 @@
 | MC Normal (v1) | ~73% | ~19% | ~8% | ~1.6% |
 | MC t-Copula (v4) | ~90% | ~8% | ~2% | ~1.0% |
 
+```mermaid
+xychart-beta
+    title "Mean Exception Rate by Model (%)"
+    x-axis ["Parametric", "MC Normal", "HS Basic", "FHS-EWMA", "FHS-GARCH", "t-Copula"]
+    y-axis "Exception Rate (%)" 0.0 --> 2.0
+    bar [1.8, 1.6, 1.5, 1.2, 1.1, 1.0]
+```
+
 **Validation Conclusion:** Filtered Historical Simulation (FHS-GARCH) and Monte Carlo (t-Copula) materially outperform legacy Parametric methodologies across all historical regimes, bringing exception rates back within acceptable Basel III parameters.
 
 ---
@@ -83,6 +91,20 @@ During the March–April 2020 COVID drawdown:
 ---
 
 ## 7. Strategic Implementation Directives
+
+```mermaid
+graph LR
+    classDef primary fill:#0F172A,stroke:#334155,stroke-width:2px,color:#F8FAFC;
+    classDef alert fill:#DC2626,stroke:#991B1B,stroke-width:2px,color:#FEF2F2;
+    classDef monitoring fill:#D97706,stroke:#92400E,stroke-width:2px,color:#FFFBEB;
+    
+    A[End-of-Day Risk Run] --> B{Macro Volatility Regime}
+    B -->|Normal Operations| C[FHS-GARCH v3.0 <br/> Primary Risk Engine]:::primary
+    B -->|High VIX / Systemic Stress| D[MC t-Copula v4.0 <br/> Stressed ES Overlay]:::alert
+    C --> E((Regulatory Capital <br/> Reporting))
+    D --> E
+    A -.->|Intraday Monitoring| F[FHS-EWMA <br/> KRI Trigger]:::monitoring
+```
 
 **Primary Production Engine: FHS-GARCH (v3.0)**
 *   Demonstrates exceptional robustness across all tested historical regimes.

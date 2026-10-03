@@ -40,26 +40,20 @@ It handles everything from daily market data ingestion and data quality (DQ) che
 
 The framework is built on a modular architecture, separating data ingestion from pricing, risk computation, and reporting layers.
 
-```text
-Real Data API (yfinance, FRED) -> Data Layer (SQLite DB + DQ Engine)
-                                       |
-                                       v
-                     Pricing Engine (Black-76, DCF, CIP, Greeks)
-                                       |
-                                       v
-             Core Risk Engine (HS, FHS-GARCH, MC t-Copula, Stressed ES)
-                                       |
-                                       v
-       Walk-Forward Engine (Rolling / Expanding Window, 500-day warmup)
-          |                                                       |
-          v                                                       v
-  Backtesting Engine                                       Stress Testing Engine
-  (Basel Traffic Light, PLAT)                              (Historical & Reverse)
-          |                                                       |
-          +------------------------+------------------------------+
-                                   |
-                                   v
-             Reporting & Dashboarding (Streamlit, PDF, Excel)
+```mermaid
+graph TD
+    classDef primary fill:#0F172A,stroke:#334155,stroke-width:2px,color:#F8FAFC;
+    classDef secondary fill:#1E293B,stroke:#475569,stroke-width:2px,color:#E2E8F0;
+    classDef highlight fill:#3B82F6,stroke:#2563EB,stroke-width:2px,color:#FFFFFF;
+    
+    A[(Real Data API <br/> yfinance, FRED)]:::secondary -->|ETL & Validation| B[Data Layer <br/> SQLite DB + DQ Engine]:::primary
+    B --> C{Pricing Engine <br/> Black-76, DCF, CIP}:::secondary
+    C -->|Greeks & Base Valuations| D[Core Risk Engine <br/> HS, FHS-GARCH, MC t-Copula]:::primary
+    D -->|Simulated Scenarios| E[Walk-Forward Engine <br/> 500-day warmup]:::secondary
+    E --> F((Backtesting Engine <br/> Basel Traffic Light, PLAT)):::highlight
+    E --> G((Stress Testing Engine <br/> Historical, Reverse)):::highlight
+    F -->|Validation Metrics| H[Reporting & BI <br/> Streamlit, PDF, Excel]:::primary
+    G -->|Capital Shocks| H
 ```
 
 ---
