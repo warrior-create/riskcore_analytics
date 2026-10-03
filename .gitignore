@@ -1,0 +1,50 @@
+# Data and database (never commit)
+data/marketrisk.db
+data/raw/
+data/snapshots/
+data/reports/
+data/alerts.jsonl
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Coverage
+.coverage
+coverage.xml
+htmlcov/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Secrets
+.env
+.env.*
+*.key
+
+# macOS
+.DS_Store
+._*
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Temporary files
+*.tmp
+*.bak

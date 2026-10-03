@@ -1,0 +1,203 @@
+# MarketRisk-Lab Master Configuration
+# All paths relative to project root unless absolute
+
+project:
+  name: "MarketRisk-Lab"
+  version: "0.1.0"
+  timezone: "Asia/Kolkata"
+
+random_seed: 42
+
+# ---------------------------------------------------------------------------
+# Data
+# ---------------------------------------------------------------------------
+data:
+  db_path: "data/marketrisk.db"
+  raw_dir: "data/raw"
+  snapshot_dir: "data/snapshots"
+
+  # NSE equity universe
+  equity_tickers:
+    - "HDFCBANK.NS"
+    - "RELIANCE.NS"
+    - "SBIN.NS"
+    - "INFY.NS"
+    - "TCS.NS"
+    - "ICICIBANK.NS"
+
+  # Short-history ticker for RNIV/NMRF demo
+  ipo_ticker: "LICI.NS"
+  ipo_proxy_ticker: "^NSEI"          # Nifty 50 as proxy
+
+  # Market indices and FX
+  nifty_ticker: "^NSEI"
+  vix_ticker: "^INDIAVIX"
+  usdinr_ticker: "INR=X"
+
+  # History window
+  history_start: "2007-01-01"
+  history_end: null                   # null = today
+
+  # Backtesting warm-up (trading days)
+  backtest_warmup_days: 500
+
+  # FRED API key (set via env var FRED_API_KEY or here)
+  fred_api_key: null
+
+  # Forward-fill FX and US data on Indian trading days
+  ffill_fx: true
+  ffill_max_days: 5
+
+# ---------------------------------------------------------------------------
+# Portfolio
+# ---------------------------------------------------------------------------
+portfolio:
+  # Equity positions (number of shares × price ≈ weights below are normalised)
+  equities:
+    HDFCBANK.NS: 100
+    RELIANCE.NS:  80
+    SBIN.NS:     200
+    INFY.NS:     150
+    TCS.NS:       60
+    ICICIBANK.NS: 180
+
+  # Nifty options (synthetic, rolled to constant maturity)
+  options:
+    short_call:
+      underlying: "^NSEI"
+      type: "call"
+      moneyness: 1.00          # ATM
+      maturity_days: 14        # ~2-week short position
+      contracts: -5            # short
+    long_put:
+      underlying: "^NSEI"
+      type: "put"
+      moneyness: 0.95          # 5% OTM put hedge
+      maturity_days: 21
+      contracts: 5             # long
+
+  # USDINR forward
+  fx_forward:
+    ccy_pair: "USDINR"
+    notional_usd: 1_000_000
+    tenor_months: 1
+
+  # G-sec bond (constant maturity)
+  bond:
+    face_value: 10_000_000
+    coupon_rate: 0.0725        # 7.25% GOI benchmark
+    maturity_years: 10
+    frequency: 2               # semi-annual
+
+  # INR OIS swap (stretch)
+  irs:
+    notional: 10_000_000
+    fixed_rate: 0.065
+    tenor_years: 5
+    pay_fixed: true
+
+# ---------------------------------------------------------------------------
+# INR Yield Curve (3-point synthetic fallback)
+# Assumption documented in docs/model_dev_docs/assumptions.md
+# ---------------------------------------------------------------------------
+yield_curve:
+  source: "synthetic_3pt"      # synthetic_3pt | fbil | manual
+  tenors_years: [2, 5, 10]
+  # Spread over USD FRED rates (basis points, illustrative)
+  inr_usd_spread_bps: [300, 320, 350]
+  fred_series:
+    2Y: "DGS2"
+    5Y: "DGS5"
+    10Y: "DGS10"
+
+# ---------------------------------------------------------------------------
+# Risk Models
+# ---------------------------------------------------------------------------
+models:
+  confidence_levels: [0.95, 0.975, 0.99]
+  es_confidence: 0.975
+  holding_period_days: 1
+
+  # Historical simulation
+  hs:
+    lookback_days: 500
+    expanding_window: false
+
+  # Filtered Historical Simulation (FHS)
+  fhs:
+    vol_model: "GARCH"          # GARCH | EWMA
+    ewma_lambda: 0.94
+    garch_p: 1
+    garch_q: 1
+    lookback_days: 500
+
+  # Monte Carlo
+  mc:
+    n_scenarios: 50000
+    distribution: "t"           # normal | t
+    t_df_min: 2                 # minimum df for MLE fitting
+    t_df_max: 30
+
+  # Parametric
+  parametric:
+    ewma_lambda: 0.94
+
+  # Stressed ES window
+  stressed_es:
+    window_days: 252            # 12-month stress window
+    reduced_set_factors: ["equity", "fx"]   # simplified reduced set
+
+  # Liquidity horizons (days) by risk-factor class
+  liquidity_horizons:
+    equity: 10
+    fx: 10
+    rates: 20
+    credit: 40
+    commodity: 20
+
+# ---------------------------------------------------------------------------
+# Backtesting
+# ---------------------------------------------------------------------------
+backtest:
+  var_confidence: 0.99
+  var_confidence_secondary: 0.975
+  traffic_light_window: 250    # Basel standard
+  traffic_light_thresholds:    # upper bound (inclusive) for green/amber
+    green: 4
+    amber: 9
+    # red: 10+
+
+  kupiec_significance: 0.05
+  christoffersen_significance: 0.05
+  acerbi_simulations: 1000
+
+  # P&L attribution BCBS thresholds (d457)
+  plat_spearman_green: 0.80
+  plat_spearman_amber: 0.70
+  plat_ks_green: 0.09
+  plat_ks_amber: 0.12
+
+# ---------------------------------------------------------------------------
+# Data Quality
+# ---------------------------------------------------------------------------
+data_quality:
+  zscore_threshold: 5.0
+  mad_threshold: 10.0
+  stale_price_days: 3
+  max_return_threshold: 0.40   # 40% daily return triggers review
+
+# ---------------------------------------------------------------------------
+# Reporting
+# ---------------------------------------------------------------------------
+reporting:
+  excel_output_dir: "data/reports"
+  pdf_output_dir: "data/reports"
+  alert_log: "data/alerts.jsonl"
+
+# ---------------------------------------------------------------------------
+# RNIV / NMRF
+# ---------------------------------------------------------------------------
+rniv_nmrf:
+  min_observations_modellable: 24   # 24 obs per year
+  lookback_years: 1
+  stress_multiplier: 1.5

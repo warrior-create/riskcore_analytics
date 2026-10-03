@@ -1,0 +1,110 @@
+stages:
+  - lint
+  - test
+  - integration
+  - regression
+  - report
+
+variables:
+  PYTHON_VERSION: "3.11"
+  PYTHONPATH: "src"
+  FRED_API_KEY: ""   # set in CI/CD secrets
+
+# ---------------------------------------------------------------------------
+# Templates
+# ---------------------------------------------------------------------------
+
+.python_base:
+  image: python:${PYTHON_VERSION}-slim
+  before_script:
+    - pip install --upgrade pip
+    - pip install -e ".[dev]"
+  cache:
+    key: "${CI_COMMIT_REF_SLUG}"
+    paths:
+      - .cache/pip/
+
+# ---------------------------------------------------------------------------
+# Lint
+# ---------------------------------------------------------------------------
+
+ruff:
+  extends: .python_base
+  stage: lint
+  script:
+    - ruff check src/ tests/
+  allow_failure: false
+
+black_check:
+  extends: .python_base
+  stage: lint
+  script:
+    - black --check src/ tests/
+  allow_failure: true
+
+# ---------------------------------------------------------------------------
+# Unit tests
+# ---------------------------------------------------------------------------
+
+unit_tests:
+  extends: .python_base
+  stage: test
+  script:
+    - pytest tests/unit/ -v --cov=marketrisk --cov-report=term-missing --cov-report=xml
+  coverage: '/TOTAL.*\s(\d+)%/'
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+  allow_failure: false
+
+fault_injection:
+  extends: .python_base
+  stage: test
+  script:
+    - pytest tests/fault_injection/ -v
+  allow_failure: false
+
+# ---------------------------------------------------------------------------
+# Integration
+# ---------------------------------------------------------------------------
+
+integration_tests:
+  extends: .python_base
+  stage: integration
+  script:
+    - pytest tests/integration/ -v --timeout=120
+  timeout: 10m
+  allow_failure: false
+
+# ---------------------------------------------------------------------------
+# Regression (golden files)
+# ---------------------------------------------------------------------------
+
+regression_tests:
+  extends: .python_base
+  stage: regression
+  script:
+    - pytest tests/regression/ -v --timeout=60
+  allow_failure: true   # golden files may not exist on first run
+
+# ---------------------------------------------------------------------------
+# Scheduled daily run (via GitLab CI schedules)
+# ---------------------------------------------------------------------------
+
+daily_report:
+  extends: .python_base
+  stage: report
+  only:
+    - schedules
+  script:
+    - marketrisk init-db
+    - marketrisk ingest
+    - marketrisk check-dq
+    - marketrisk backtest
+    - marketrisk report --format excel
+  artifacts:
+    paths:
+      - data/reports/*.xlsx
+    expire_in: 30 days
